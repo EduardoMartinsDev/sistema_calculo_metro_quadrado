@@ -30,15 +30,51 @@ def calcular_rateio():
 
 def consolidar_rateios():
     total = sum(item["Valor do Rateio"] for item in rateios)
-    tree.insert("", "end", values=("Total", "", f"R$ {total:.2f}"), tags=("soma",))
     label_total_consolidado.config(text=f"Total Consolidado: R$ {total:.2f}")
+
+def apagar_linha_selecionada():
+    try:
+        selected_item = tree.selection()[0]
+        values = tree.item(selected_item, "values")
+
+        # Encontrar e remover o item correspondente no dicionário de rateios
+        for rateio in rateios:
+            if (rateio["Descrição"] == values[0] and
+                rateio["Metragem Individual"] == float(values[1]) and
+                f"R$ {rateio['Valor do Rateio']:.2f}" == values[2]):
+                rateios.remove(rateio)
+                break
+
+        # Remover a linha da tabela
+        tree.delete(selected_item)
+
+        # Atualizar o total consolidado
+        consolidar_rateios()
+    except IndexError:
+        messagebox.showerror("Erro", "Por favor, selecione uma linha para apagar.")
+
+def reiniciar_calculos():
+    # Limpar todos os campos de entrada
+    entry_descricao.delete(0, tk.END)
+    entry_total_m2.delete(0, tk.END)
+    entry_valor_total.delete(0, tk.END)
+    entry_m2_individual.delete(0, tk.END)
+
+    # Limpar a tabela
+    for item in tree.get_children():
+        tree.delete(item)
+
+    # Limpar a lista de rateios e o total consolidado
+    rateios.clear()
+    label_total_consolidado.config(text="Total Consolidado: R$ 0.00")
+    label_resultado.config(text="Valor do rateio: R$ 0.00")
 
 app = tk.Tk()
 app.title("Calculadora de Rateio por m²")
 
 # Dimensões da janela
-largura_janela = 600
-altura_janela = 900
+largura_janela = 800
+altura_janela = 600
 
 # Obter as dimensões da tela
 largura_tela = app.winfo_screenwidth()
@@ -52,54 +88,40 @@ posicao_y = (altura_tela // 2) - (altura_janela // 2)
 app.geometry(f"{largura_janela}x{altura_janela}+{posicao_x}+{posicao_y}")
 app.configure(bg="#1e1e1e")
 
-# Configuração do canvas para permitir rolagem
-canvas = tk.Canvas(app, bg="#1e1e1e", highlightthickness=0, width=800)
-canvas.pack(side="left", fill="both", expand=True)
+# Frame principal
+frame_principal = tk.Frame(app, bg="#1e1e1e")
+frame_principal.pack(fill="both", expand=True)
 
-scrollbar = tk.Scrollbar(app, orient="vertical", command=canvas.yview)
-scrollbar.pack(side="right", fill="y")
-canvas.configure(yscrollcommand=scrollbar.set)
+# Campos de entrada
+label_descricao = tk.Label(frame_principal, text="Descrição do Rateio:", bg="#1e1e1e", fg="#e0e0e0", font=("Arial", 12))
+label_descricao.pack(pady=5)
+entry_descricao = tk.Entry(frame_principal, bg="#3c3c3c", fg="#C0C0C0", font=("Arial", 12), width=40)
+entry_descricao.pack(pady=5)
 
-# Frame central com conteúdo
-scrollable_frame = tk.Frame(canvas, bg="#1e1e1e", width=760)
-canvas.create_window((0, 0), window=scrollable_frame, anchor="n")
+label_total_m2 = tk.Label(frame_principal, text="Metragem Quadrada Total:", bg="#1e1e1e", fg="#e0e0e0", font=("Arial", 12))
+label_total_m2.pack(pady=5)
+entry_total_m2 = tk.Entry(frame_principal, bg="#3c3c3c", fg="#C0C0C0", font=("Arial", 12), width=40)
+entry_total_m2.pack(pady=5)
 
-# Ajuste de redimensionamento do canvas conforme conteúdo
-scrollable_frame.bind(
-    "<Configure>",
-    lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-)
+label_valor_total = tk.Label(frame_principal, text="Valor Total da Conta:", bg="#1e1e1e", fg="#e0e0e0", font=("Arial", 12))
+label_valor_total.pack(pady=5)
+entry_valor_total = tk.Entry(frame_principal, bg="#3c3c3c", fg="#C0C0C0", font=("Arial", 12), width=40)
+entry_valor_total.pack(pady=5)
 
-# Campos de entrada centralizados
-label_descricao = tk.Label(scrollable_frame, text="Descrição do Rateio:", bg="#1e1e1e", fg="#e0e0e0", font=("Arial", 12))
-label_descricao.pack(pady=10, anchor="center")
-entry_descricao = tk.Entry(scrollable_frame, bg="#3c3c3c", fg="#C0C0C0", insertbackground="#C0C0C0", font=("Arial", 12), width=40)
-entry_descricao.pack(pady=10, anchor="center")
+label_m2_individual = tk.Label(frame_principal, text="Metragem Individual:", bg="#1e1e1e", fg="#e0e0e0", font=("Arial", 12))
+label_m2_individual.pack(pady=5)
+entry_m2_individual = tk.Entry(frame_principal, bg="#3c3c3c", fg="#C0C0C0", font=("Arial", 12), width=40)
+entry_m2_individual.pack(pady=5)
 
-label_total_m2 = tk.Label(scrollable_frame, text="Metragem Quadrada Total:", bg="#1e1e1e", fg="#e0e0e0", font=("Arial", 12))
-label_total_m2.pack(pady=10, anchor="center")
-entry_total_m2 = tk.Entry(scrollable_frame, bg="#3c3c3c", fg="#C0C0C0", insertbackground="#C0C0C0", font=("Arial", 12), width=40)
-entry_total_m2.pack(pady=10, anchor="center")
+botao_calcular = tk.Button(frame_principal, text="Calcular Rateio", command=calcular_rateio, bg="#3a3a3a", fg="#C0C0C0", font=("Arial", 12))
+botao_calcular.pack(pady=10)
 
-label_valor_total = tk.Label(scrollable_frame, text="Valor Total da Conta:", bg="#1e1e1e", fg="#e0e0e0", font=("Arial", 12))
-label_valor_total.pack(pady=10, anchor="center")
-entry_valor_total = tk.Entry(scrollable_frame, bg="#3c3c3c", fg="#C0C0C0", insertbackground="#C0C0C0", font=("Arial", 12), width=40)
-entry_valor_total.pack(pady=10, anchor="center")
+label_resultado = tk.Label(frame_principal, text="Valor do rateio: R$ 0.00", bg="#1e1e1e", fg="#b0b0b0", font=("Arial", 12, "bold"))
+label_resultado.pack(pady=10)
 
-label_m2_individual = tk.Label(scrollable_frame, text="Metragem Individual:", bg="#1e1e1e", fg="#e0e0e0", font=("Arial", 12))
-label_m2_individual.pack(pady=10, anchor="center")
-entry_m2_individual = tk.Entry(scrollable_frame, bg="#3c3c3c", fg="#C0C0C0", insertbackground="#C0C0C0", font=("Arial", 12), width=40)
-entry_m2_individual.pack(pady=10, anchor="center")
-
-botao_calcular = tk.Button(scrollable_frame, text="Calcular Rateio", command=calcular_rateio, bg="#3a3a3a", fg="#C0C0C0", font=("Arial", 12), width=20)
-botao_calcular.pack(pady=15, anchor="center")
-
-label_resultado = tk.Label(scrollable_frame, text="Valor do rateio: R$ 0.00", bg="#1e1e1e", fg="#b0b0b0", font=("Arial", 12, "bold"))
-label_resultado.pack(pady=15, anchor="center")
-
-# Tabela centralizada
-frame_tabela = tk.Frame(scrollable_frame, bg="#2a2a2a")
-frame_tabela.pack(pady=15, anchor="center")
+# Tabela
+frame_tabela = tk.Frame(frame_principal, bg="#2a2a2a")
+frame_tabela.pack(pady=10)
 tree = ttk.Treeview(frame_tabela, columns=("Descrição", "Metragem Individual", "Valor do Rateio"), show="headings", height=8)
 tree.heading("Descrição", text="Descrição")
 tree.heading("Metragem Individual", text="Metragem Individual (m²)")
@@ -107,16 +129,22 @@ tree.heading("Valor do Rateio", text="Valor do Rateio (R$)")
 tree.column("Descrição", anchor="center", width=200)
 tree.column("Metragem Individual", anchor="center", width=200)
 tree.column("Valor do Rateio", anchor="center", width=200)
-tree.tag_configure("rateio", background="#e6e6e6", font=("Arial", 11))
-tree.tag_configure("soma", background="#f1c40f", font=("Arial", 12, "bold"))
 tree.pack()
 
-# Total consolidado centralizado
-label_total_consolidado = tk.Label(scrollable_frame, text="Total Consolidado: R$ 0.00", font=("Arial", 16, "bold"), bg="#2a2a2a", fg="#f1c40f")
-label_total_consolidado.pack(pady=20, fill="x", anchor="center")
+# Botões extras
+frame_botoes = tk.Frame(frame_principal, bg="#1e1e1e")
+frame_botoes.pack(pady=10)
 
-# Botão Consolidar Rateios centralizado
-botao_consolidar = tk.Button(scrollable_frame, text="Consolidar Rateios", command=consolidar_rateios, bg="#3a3a3a", fg="#C0C0C0", font=("Arial", 12), width=20)
-botao_consolidar.pack(pady=25, anchor="center")
+botao_apagar_linha = tk.Button(frame_botoes, text="Apagar Linha Selecionada", command=apagar_linha_selecionada, bg="#3a3a3a", fg="#C0C0C0", font=("Arial", 12))
+botao_apagar_linha.grid(row=0, column=0, padx=10)
+
+botao_reiniciar = tk.Button(frame_botoes, text="Reiniciar Cálculos", command=reiniciar_calculos, bg="#3a3a3a", fg="#C0C0C0", font=("Arial", 12))
+botao_reiniciar.grid(row=0, column=1, padx=10)
+
+label_total_consolidado = tk.Label(frame_principal, text="Total Consolidado: R$ 0.00", font=("Arial", 16, "bold"), bg="#2a2a2a", fg="#f1c40f")
+label_total_consolidado.pack(pady=10)
+
+botao_consolidar = tk.Button(frame_principal, text="Consolidar Rateios", command=consolidar_rateios, bg="#3a3a3a", fg="#C0C0C0", font=("Arial", 12))
+botao_consolidar.pack(pady=10)
 
 app.mainloop()
